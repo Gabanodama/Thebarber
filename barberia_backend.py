@@ -386,11 +386,25 @@ def schedule_reminder(appointment_id: int, scheduled_at: datetime):
 # 5. ENDPOINTS FASTAPI
 # ─────────────────────────────────────────────────────────────
 
+import os  # Necesario para leer la variable de entorno
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
-DATABASE_URL = "postgresql+asyncpg://user:password@localhost/barberia_db"
+# 1. Leemos la URL de Render. Si no existe (local), usamos la de desarrollo.
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# 2. Truco de compatibilidad: Render usa 'postgres://', pero SQLAlchemy requiere 'postgresql+asyncpg://'
+if DATABASE_URL:
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif DATABASE_URL.startswith("postgresql://"):
+        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+else:
+    # URL de respaldo para cuando trabajes en tu PC
+    DATABASE_URL = "postgresql+asyncpg://user:password@localhost/barberia_db"
+
+# 3. Configuración del motor asíncrono
 engine = create_async_engine(DATABASE_URL, echo=False)
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
